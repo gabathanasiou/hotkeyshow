@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 
 @main
@@ -8,6 +9,11 @@ enum Main {
 
         if arguments.contains("--dump") {
             Diagnostics.dump()
+            return
+        }
+
+        if let index = arguments.firstIndex(of: "--login-item"), index + 1 < arguments.count {
+            Diagnostics.setLoginItem(enabled: arguments[index + 1] == "on")
             return
         }
 
@@ -80,6 +86,21 @@ enum Diagnostics {
             exit(1)
         }
         exit(0)
+    }
+
+    static func setLoginItem(enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            print("login item: \(enabled ? "on" : "off")")
+            exit(0)
+        } catch {
+            print("login item error: \(error.localizedDescription)")
+            exit(1)
+        }
     }
 
     @MainActor

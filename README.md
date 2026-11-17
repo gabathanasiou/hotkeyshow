@@ -78,6 +78,7 @@ AeroSpace has no plugin API, so adding this to it would mean maintaining a fork 
 ```sh
 .build/debug/HotkeyShow --dump                       # text dump of every mode's bindings
 .build/debug/HotkeyShow --snapshot build/snapshots   # render the cards to PNG
+.build/debug/HotkeyShow --login-item on|off          # register/unregister the login item
 tail -f ~/Library/Logs/HotkeyShow.log
 ```
 
