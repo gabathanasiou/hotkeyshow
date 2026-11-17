@@ -23,7 +23,7 @@ Click the menu bar item for the full, searchable sheet. Mode rows are clickable,
 
 ## Install
 
-Download `HotkeyShow-0.1.0.zip` from [Releases](https://github.com/gabathanasiou/hotkeyshow/releases), unzip it, and move `HotkeyShow.app` to `/Applications`.
+Download the latest `HotkeyShow-*.zip` from [Releases](https://github.com/gabathanasiou/hotkeyshow/releases), unzip it, and move `HotkeyShow.app` to `/Applications`.
 
 The build is ad-hoc signed, not notarized, so the first launch needs **right-click → Open**, or:
 
