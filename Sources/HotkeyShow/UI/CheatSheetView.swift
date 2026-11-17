@@ -243,8 +243,9 @@ struct SheetRowView: View {
 /// snapshot renderer, so every surface shows the same thing.
 struct CheatSheetView: View {
     let sheet: ModeSheet
-    let title: String
-    let subtitle: String
+    /// Optional: the peek has no header at all. Holding ⌥ is its own context.
+    let title: String?
+    let subtitle: String?
     let includeBasics: Bool
     let metrics: SheetMetrics
     var highlight: String? = nil
@@ -253,7 +254,9 @@ struct CheatSheetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            header
+            if title != nil || subtitle != nil {
+                header
+            }
 
             if sheet.allGroups.isEmpty {
                 Text("No bindings configured for this mode")
@@ -299,12 +302,16 @@ struct CheatSheetView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(.system(size: metrics.headerFont, weight: .semibold))
-                .foregroundStyle(.primary)
-            Text(subtitle)
-                .font(.system(size: max(11, metrics.headerFont - 2)))
-                .foregroundStyle(.secondary)
+            if let title {
+                Text(title)
+                    .font(.system(size: metrics.headerFont, weight: .semibold))
+                    .foregroundStyle(.primary)
+            }
+            if let subtitle {
+                Text(subtitle)
+                    .font(.system(size: max(11, metrics.headerFont - 2)))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -382,8 +389,8 @@ struct HUDContentView: View {
                 let isMain = modeID == "main"
                 CheatSheetView(
                     sheet: sheet,
-                    title: isMain ? holdTitle(sheet) : "\(modeID.capitalized) mode",
-                    subtitle: isMain ? "release to dismiss" : (sheet.returnHint ?? "modifier held"),
+                    title: isMain ? nil : "\(modeID.capitalized) mode",
+                    subtitle: isMain ? nil : (sheet.returnHint ?? "modifier held"),
                     includeBasics: includeBasics,
                     metrics: metrics,
                     highlight: state.highlight
@@ -393,10 +400,5 @@ struct HUDContentView: View {
             }
         }
         .environment(\.colorScheme, .dark)
-    }
-
-    private func holdTitle(_ sheet: ModeSheet) -> String {
-        guard !sheet.baseModifiers.isEmpty else { return "Shortcuts" }
-        return "Hold " + sheet.baseModifiers.sorted { $0.sortOrder < $1.sortOrder }.map(\.symbol).joined()
     }
 }

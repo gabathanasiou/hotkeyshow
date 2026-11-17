@@ -139,8 +139,8 @@ private struct SnapshotCard: View {
         } else {
             CheatSheetView(
                 sheet: sheet,
-                title: isMain ? holdTitle : "\(sheet.id.capitalized) mode",
-                subtitle: isMain ? "release to dismiss" : (sheet.returnHint ?? "modifier held"),
+                title: isMain ? nil : "\(sheet.id.capitalized) mode",
+                subtitle: isMain ? nil : (sheet.returnHint ?? "modifier held"),
                 includeBasics: false,
                 metrics: isMain ? .peek : .service
             )
@@ -154,10 +154,5 @@ private struct SnapshotCard: View {
             )
             .environment(\.colorScheme, .dark)
         }
-    }
-
-    private var holdTitle: String {
-        guard !sheet.baseModifiers.isEmpty else { return "Shortcuts" }
-        return "Hold " + sheet.baseModifiers.sorted { $0.sortOrder < $1.sortOrder }.map(\.symbol).joined()
     }
 }
