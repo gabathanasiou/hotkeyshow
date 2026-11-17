@@ -114,7 +114,7 @@ swift test            # 22 tests: chord parsing, labelling, compression, config
 - SwiftUI for layout, AppKit for the pieces SwiftUI cannot do (`NSPanel`, `NSVisualEffectView`, `NSSearchField`, `MenuBarExtra`). No web views, no runtime to bundle, no third-party dependencies — the binary is under a megabyte.
 - A borderless, non-activating `NSPanel` at `.floating` level shows over normal windows and other apps' full-screen spaces. It never becomes key or main, and `ignoresMouseEvents` lets clicks fall through.
 - The menu is a system popover: `.menu` vibrancy, semantic colors, SF Pro at 13/11 pt, the real `NSSearchField`, menu-style rows with right-aligned shortcuts, hover highlight, and the system accent.
-- The peek appears only after Option has been held *still* for 0.3 s, so normal fast `⌥`+key use never flashes it. When a binding fires, the app asks AeroSpace what it was and flashes that keycap.
+- The peek appears only after Option has been held *still* for 0.3 s, so normal fast `⌥`+key use never flashes it. The poll runs at 10 Hz and pauses while the display sleeps; idle cost is ~0.2% CPU and ~26 MB dirty memory. When a binding fires, the app asks AeroSpace what it was and flashes that keycap.
 - One SwiftUI view is shared by the overlay, the menu and the snapshot renderer, so what you see in the screenshots above is what the app draws.
 
 ## Known limits
