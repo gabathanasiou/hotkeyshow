@@ -123,3 +123,7 @@ swift test            # 22 tests: chord parsing, labelling, compression, config
 - The card appears on the screen under the mouse pointer. That matches focus because AeroSpace's default `on-focused-monitor-changed = ['move-mouse monitor-lazy-center']` moves the pointer to the focused monitor; without that callback it follows the pointer instead.
 - The menu sheet scrolls once it exceeds 640 pt; a very large config scrolls instead of filling the screen.
 - The status item shows a single icon rather than the workspace number — keep your existing workspace indicator.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
