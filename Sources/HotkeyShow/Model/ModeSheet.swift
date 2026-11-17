@@ -37,6 +37,19 @@ struct ModeSheet: Identifiable {
         return exits.first?.chord
     }
 
+    /// How you get back, in plain words. When every binding in a mode ends in
+    /// `mode main` — as a one-shot service mode usually does — that is worth
+    /// saying outright instead of leaving it to a tinted keycap.
+    var returnHint: String? {
+        guard !allRows.isEmpty else { return nil }
+        if allRows.allSatisfy(\.summary.isExit) {
+            return "Any key returns to main mode"
+        }
+        guard let exit = primaryExit else { return nil }
+        let chord = exit.contains(baseModifiers) ? exit.stripped(of: baseModifiers) : exit
+        return "\(chord.display) returns to main mode"
+    }
+
     func visibleGroups(includingBasics: Bool) -> [BindingGroup] {
         allGroups.filter { includingBasics || !$0.category.isBasics }
     }

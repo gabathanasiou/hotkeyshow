@@ -17,8 +17,8 @@ Click the menu bar item for the full, searchable sheet:
 ## What it does
 
 - **Peek on hold ⌥** — after 0.3 s of hesitation a card appears with the non-obvious bindings. Focus/move `hjkl`, `1–9` workspaces and `⇧1–9` sends are collapsed into one dim line, because you already know those. Press any binding or release ⌥ and it disappears.
-- **Mode panel** — entering `service` (or any other mode) immediately shows that mode's bindings, with the exit key highlighted. It stays up until you leave the mode, so it doubles as "you are in a mode" feedback.
-- **Menu bar sheet** — the current workspace number, plus a searchable list of every binding. A binding AeroSpace itself cannot parse is not shown, so the card reflects what will actually work.
+- **Mode panel** — entering `service` (or any other mode) immediately shows that mode's bindings. The exit key is highlighted, and a plain-language line says how to get back: *Any key returns to main mode* when every binding in the mode ends in `mode main`, or the specific exit key otherwise. It stays up until you leave the mode, so it doubles as "you are in a mode" feedback.
+- **Menu bar sheet** — the current workspace number, plus a searchable list of the bindings for **the mode you are in**: open it during service mode and it lists join/float/reset/close rather than the main grid.
 
 Everything is read live from the running AeroSpace: `list-modes --json` discovers modes, and `config --get mode.<id>.binding --json` dumps a mode's bindings in one call. There is no second copy of your shortcuts to drift, and no hardcoded `service` — add a `resize` mode and it appears on the next refresh.
 
@@ -87,9 +87,11 @@ mode service   base: (none)   bindings: 8
 
 ## How it works
 
+- SwiftUI for layout, AppKit for the pieces SwiftUI cannot do (`NSPanel`, `NSVisualEffectView`, `NSSearchField`, `NSStatusItem`-backed `MenuBarExtra`). No web views, no runtime to bundle, no third-party dependencies — the binary is under a megabyte.
 - A borderless, non-activating `NSPanel` at `.floating` level shows over normal windows and other apps' full-screen spaces. It never becomes key or main, and `ignoresMouseEvents` lets clicks fall through.
+- The menu is a system popover: `.menu` vibrancy, semantic colors, SF Pro at 13/11 pt, the real `NSSearchField`, menu-style rows with right-aligned shortcuts, hover highlight, and the system accent.
 - The peek appears only after Option has been held *still* for 0.3 s, so normal fast `⌥`+key use never flashes it. When a binding fires, the app asks AeroSpace what it was and flashes that keycap.
-- Rounding, blur and layout come from one SwiftUI view shared by the overlay, the menu and the snapshot renderer — so what you see in the README is exactly what the app draws.
+- One SwiftUI view is shared by the overlay, the menu and the snapshot renderer, so what you see in the screenshots above is what the app draws.
 
 ## Known limits
 

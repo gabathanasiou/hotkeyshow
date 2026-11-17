@@ -81,9 +81,11 @@ final class HUDController {
             context.duration = 0.10
             panel.animator().alphaValue = 0
         } completionHandler: { [weak self, weak panel] in
-            guard let self, let panel, !self.isVisible else { return }
-            panel.orderOut(nil)
-            panel.contentView = nil
+            Task { @MainActor in
+                guard let self, let panel, !self.isVisible else { return }
+                panel.orderOut(nil)
+                panel.contentView = nil
+            }
         }
     }
 

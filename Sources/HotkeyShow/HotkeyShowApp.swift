@@ -53,7 +53,7 @@ struct MenuBarLabel: View {
 
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: state.isServiceMode ? "exclamationmark.triangle.fill" : "rectangle.split.2x1")
+            Image(systemName: state.isServiceMode ? "keyboard" : "rectangle.split.2x1")
             Text(state.workspace)
                 .monospacedDigit()
         }
@@ -105,7 +105,7 @@ enum Diagnostics {
             for sheet in sheets {
                 for includeBasics in [false, true] {
                     let card = SnapshotCard(sheet: sheet, includeBasics: includeBasics)
-                    let renderer = ImageRenderer(content: card.padding(36).background(SnapshotBackdrop()))
+                    let renderer = ImageRenderer(content: card)
                     renderer.scale = 2
                     guard let image = renderer.nsImage,
                           let tiff = image.tiffRepresentation,
@@ -133,39 +133,42 @@ private struct SnapshotCard: View {
 
     var body: some View {
         let isMain = sheet.id == "main"
-        let title: String = {
-            if includeBasics { return "\(sheet.id.uppercased()) · ALL SHORTCUTS" }
-            if isMain { return sheet.baseModifiers.isEmpty
-                ? "SHORTCUTS"
-                : "HOLD " + sheet.baseModifiers.sorted { $0.sortOrder < $1.sortOrder }.map(\.symbol).joined()
-            }
-            return "\(sheet.id.uppercased()) MODE"
-        }()
 
-        let subtitle: String = {
-            if includeBasics { return "\(sheet.allRows.count) bindings · live from AeroSpace" }
-            guard let exit = sheet.primaryExit else { return "release to dismiss" }
-            let chord = exit.contains(sheet.baseModifiers) ? exit.stripped(of: sheet.baseModifiers) : exit
-            return "\(chord.display) exits to main"
-        }()
-
-        return CheatSheetView(
-            sheet: sheet,
-            title: title,
-            subtitle: subtitle,
-            accent: isMain ? Theme.peekAccent : Theme.serviceAccent,
-            includeBasics: includeBasics,
-            metrics: includeBasics ? .menu : (isMain ? .peek : .service)
-        )
+        if includeBasics {
+            // Menu presentation: no card, light appearance like a system popover.
+            CheatSheetView(
+                sheet: sheet,
+                title: "\(sheet.id.capitalized) mode",
+                subtitle: "\(sheet.allRows.count) bindings · live from AeroSpace",
+                includeBasics: true,
+                metrics: .menu,
+                background: false
+            )
+            .padding(20)
+            .background(Color(white: 0.97))
+            .environment(\.colorScheme, .light)
+        } else {
+            CheatSheetView(
+                sheet: sheet,
+                title: isMain ? holdTitle : "\(sheet.id.capitalized) mode",
+                subtitle: isMain ? "release to dismiss" : (sheet.returnHint ?? "modifier held"),
+                includeBasics: false,
+                metrics: isMain ? .peek : .service
+            )
+            .padding(34)
+            .background(
+                LinearGradient(
+                    colors: [Color(white: 0.32), Color(white: 0.14)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .environment(\.colorScheme, .dark)
+        }
     }
-}
 
-private struct SnapshotBackdrop: View {
-    var body: some View {
-        LinearGradient(
-            colors: [Color(white: 0.32), Color(white: 0.14)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+    private var holdTitle: String {
+        guard !sheet.baseModifiers.isEmpty else { return "Shortcuts" }
+        return "Hold " + sheet.baseModifiers.sorted { $0.sortOrder < $1.sortOrder }.map(\.symbol).joined()
     }
 }

@@ -1,14 +1,20 @@
 import SwiftUI
 
 enum Theme {
-    static let card = Color(red: 0.075, green: 0.082, blue: 0.095)
-    static let stroke = Color.white.opacity(0.13)
-    static let text = Color.white.opacity(0.90)
-    static let dim = Color.white.opacity(0.42)
-    static let faint = Color.white.opacity(0.28)
-    static let peekAccent = Color(red: 0.47, green: 0.85, blue: 0.94)
-    static let serviceAccent = Color(red: 1.0, green: 0.78, blue: 0.36)
-    static let warning = Color(red: 1.0, green: 0.55, blue: 0.42)
+    /// HUD surfaces stay dark on purpose; the fill is light enough that the
+    /// .hudWindow vibrancy behind it still reads.
+    static let hudFill = Color.black.opacity(0.45)
+    static let hudStroke = Color.white.opacity(0.13)
+    /// Only the "this key leaves the mode" affordance is tinted.
+    static let exitAccent = Color(nsColor: .systemOrange)
+    static let warning = Color(nsColor: .systemRed)
+}
+
+enum KeycapStyle {
+    /// Rounded chip on the left — used by the HUD peek.
+    case chip
+    /// Plain shortcut text on the trailing edge, like a menu item.
+    case trailingText
 }
 
 struct SheetMetrics {
@@ -23,23 +29,24 @@ struct SheetMetrics {
     var rowSpacing: CGFloat
     var columnSpacing: CGFloat
     var cornerRadius: CGFloat
+    var keycapStyle: KeycapStyle
 
     static let peek = SheetMetrics(
-        columnWidth: 200, keycapFont: 12, labelFont: 12, keycapSlot: 38,
-        maxColumns: 3, padding: 20, headerFont: 11, groupTitleFont: 9.5,
-        rowSpacing: 6, columnSpacing: 26, cornerRadius: 18
+        columnWidth: 200, keycapFont: 12, labelFont: 13, keycapSlot: 38,
+        maxColumns: 3, padding: 20, headerFont: 12, groupTitleFont: 11,
+        rowSpacing: 6, columnSpacing: 24, cornerRadius: 18, keycapStyle: .chip
     )
 
     static let service = SheetMetrics(
-        columnWidth: 210, keycapFont: 14.5, labelFont: 13, keycapSlot: 64,
-        maxColumns: 3, padding: 22, headerFont: 11.5, groupTitleFont: 10,
-        rowSpacing: 8, columnSpacing: 28, cornerRadius: 20
+        columnWidth: 220, keycapFont: 13.5, labelFont: 13, keycapSlot: 62,
+        maxColumns: 3, padding: 20, headerFont: 12, groupTitleFont: 11,
+        rowSpacing: 6, columnSpacing: 24, cornerRadius: 18, keycapStyle: .chip
     )
 
     static let menu = SheetMetrics(
-        columnWidth: 190, keycapFont: 12, labelFont: 12, keycapSlot: 56,
-        maxColumns: 3, padding: 16, headerFont: 10.5, groupTitleFont: 9.5,
-        rowSpacing: 6, columnSpacing: 16, cornerRadius: 14
+        columnWidth: 220, keycapFont: 12, labelFont: 13, keycapSlot: 0,
+        maxColumns: 3, padding: 16, headerFont: 13, groupTitleFont: 11,
+        rowSpacing: 2, columnSpacing: 24, cornerRadius: 10, keycapStyle: .trailingText
     )
 }
 
@@ -51,7 +58,7 @@ struct KeyCapView: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: fontSize, weight: .semibold, design: .rounded))
+            .font(.system(size: fontSize, weight: .semibold))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .foregroundStyle(foreground)
@@ -60,20 +67,20 @@ struct KeyCapView: View {
             .frame(minWidth: 22)
             .background(
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(isHighlighted ? Color.white.opacity(0.92) : Color.white.opacity(0.095))
+                    .fill(isHighlighted ? Color.white.opacity(0.92) : Color.white.opacity(0.10))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
                     .stroke(
-                        isExit ? Theme.serviceAccent.opacity(0.6) : Color.white.opacity(0.14),
+                        isExit ? Theme.exitAccent.opacity(0.7) : Color.white.opacity(0.13),
                         lineWidth: 1
                     )
             )
     }
 
     private var foreground: Color {
-        if isHighlighted { return Theme.card }
-        return isExit ? Theme.serviceAccent : Color.white.opacity(0.93)
+        if isHighlighted { return .black }
+        return isExit ? Theme.exitAccent : Color.white.opacity(0.94)
     }
 }
 
@@ -94,8 +101,6 @@ enum SheetLayout {
         let columnCount = min(count, groups.count)
         let heights = groups.map { $0.rows.count + 2 }   // + heading
 
-        // best[k][i] = lowest possible tallest column for the first i groups
-        // laid out over k columns.
         var best = Array(repeating: Array(repeating: Int.max, count: groups.count + 1), count: columnCount + 1)
         var cut = Array(repeating: Array(repeating: 0, count: groups.count + 1), count: columnCount + 1)
         best[0][0] = 0
@@ -116,7 +121,6 @@ enum SheetLayout {
         }
 
         guard best[columnCount][groups.count] != Int.max else {
-            // Degenerate fallback: even chunks.
             return groups.chunked(into: columnCount).enumerated().map {
                 SheetColumn(id: $0.offset, groups: $0.element)
             }
@@ -145,13 +149,74 @@ private extension Array {
     }
 }
 
+/// A single binding row. Two presentations share the same data:
+/// a HUD keycap chip, or a menu-style label with a trailing shortcut.
+struct SheetRowView: View {
+    let row: BindingRow
+    let chord: KeyChord
+    let isExit: Bool
+    let isHighlighted: Bool
+    let metrics: SheetMetrics
+
+    @State private var hovering = false
+
+    var body: some View {
+        switch metrics.keycapStyle {
+        case .chip:
+            HStack(spacing: 8) {
+                HStack(spacing: 0) {
+                    KeyCapView(
+                        text: chord.display,
+                        isExit: isExit,
+                        isHighlighted: isHighlighted,
+                        fontSize: metrics.keycapFont
+                    )
+                    Spacer(minLength: 0)
+                }
+                .frame(width: metrics.keycapSlot, alignment: .leading)
+
+                Text(row.summary.label)
+                    .font(.system(size: metrics.labelFont))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .help(row.summary.raw)
+
+        case .trailingText:
+            HStack(spacing: 8) {
+                Text(row.summary.label)
+                    .font(.system(size: metrics.labelFont))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+
+                Spacer(minLength: 6)
+
+                Text(chord.display)
+                    .font(.system(size: metrics.keycapFont, weight: .medium))
+                    .foregroundStyle(isExit ? Theme.exitAccent : .secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(hovering ? Color.primary.opacity(0.07) : Color.clear)
+            )
+            .onHover { hovering = $0 }
+            .help(row.summary.raw)
+        }
+    }
+}
+
 /// The cheat sheet itself. Shared by the overlay, the menu bar and the
 /// snapshot renderer, so every surface shows the same thing.
 struct CheatSheetView: View {
     let sheet: ModeSheet
     let title: String
     let subtitle: String
-    let accent: Color
     let includeBasics: Bool
     let metrics: SheetMetrics
     var highlight: String? = nil
@@ -164,7 +229,7 @@ struct CheatSheetView: View {
             if sheet.allGroups.isEmpty {
                 Text("No bindings configured for this mode")
                     .font(.system(size: metrics.labelFont))
-                    .foregroundStyle(Theme.dim)
+                    .foregroundStyle(.secondary)
             } else {
                 let columns = SheetLayout.columns(
                     sheet.visibleGroups(includingBasics: includeBasics),
@@ -184,8 +249,8 @@ struct CheatSheetView: View {
 
             if !includeBasics, let basics = sheet.basicsLine {
                 Text(basics)
-                    .font(.system(size: metrics.groupTitleFont + 0.5))
-                    .foregroundStyle(Theme.faint)
+                    .font(.system(size: metrics.groupTitleFont))
+                    .foregroundStyle(.tertiary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -194,72 +259,52 @@ struct CheatSheetView: View {
         .background {
             if background {
                 RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous)
-                    .fill(Theme.card.opacity(0.90))
+                    .fill(Theme.hudFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 1)
+                            .stroke(Theme.hudStroke, lineWidth: 1)
                     )
             }
         }
-        .environment(\.colorScheme, .dark)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title)
-                .font(.system(size: metrics.headerFont, weight: .bold))
-                .tracking(1.7)
-                .foregroundStyle(accent)
+                .font(.system(size: metrics.headerFont, weight: .semibold))
+                .foregroundStyle(.primary)
             Text(subtitle)
-                .font(.system(size: metrics.headerFont - 0.5))
-                .foregroundStyle(Theme.dim)
+                .font(.system(size: max(11, metrics.headerFont - 2)))
+                .foregroundStyle(.secondary)
         }
     }
 
     private func groupView(_ group: BindingGroup) -> some View {
         VStack(alignment: .leading, spacing: metrics.rowSpacing) {
-            Text(group.category.title.uppercased())
+            Text(group.category.title)
                 .font(.system(size: metrics.groupTitleFont, weight: .semibold))
-                .tracking(1.1)
-                .foregroundStyle(Theme.faint)
-                .padding(.bottom, 1)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, metrics.keycapStyle == .trailingText ? 3 : 1)
 
             ForEach(group.rows) { row in
-                rowView(row)
+                SheetRowView(
+                    row: row,
+                    chord: row.chord.contains(sheet.baseModifiers)
+                        ? row.chord.stripped(of: sheet.baseModifiers)
+                        : row.chord,
+                    isExit: row.chord == sheet.primaryExit,
+                    isHighlighted: highlight == row.id,
+                    metrics: metrics
+                )
             }
         }
         .frame(width: metrics.columnWidth, alignment: .leading)
     }
-
-    private func rowView(_ row: BindingRow) -> some View {
-        let chord = row.chord.contains(sheet.baseModifiers)
-            ? row.chord.stripped(of: sheet.baseModifiers)
-            : row.chord
-
-        return HStack(spacing: 8) {
-            HStack(spacing: 0) {
-                KeyCapView(
-                    text: chord.display,
-                    isExit: row.chord == sheet.primaryExit,
-                    isHighlighted: highlight == row.id,
-                    fontSize: metrics.keycapFont
-                )
-                Spacer(minLength: 0)
-            }
-            .frame(width: metrics.keycapSlot, alignment: .leading)
-
-            Text(row.summary.label)
-                .font(.system(size: metrics.labelFont))
-                .foregroundStyle(Theme.text)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .help(row.summary.raw)
-    }
 }
 
 /// Wraps the sheet with the live app state so highlights and config refreshes
-/// update without rebuilding the window.
+/// update without rebuilding the window. The overlay is always dark, so the
+/// color scheme is forced here rather than in the sheet itself.
 struct HUDContentView: View {
     @ObservedObject var state: AppState
     let modeID: String
@@ -267,30 +312,26 @@ struct HUDContentView: View {
     let metrics: SheetMetrics
 
     var body: some View {
-        if let sheet = state.sheets[modeID] {
-            let isMain = modeID == "main"
-            CheatSheetView(
-                sheet: sheet,
-                title: isMain ? holdTitle(sheet) : "\(modeID.uppercased()) MODE",
-                subtitle: isMain ? "release to dismiss" : exitSubtitle(sheet),
-                accent: isMain ? Theme.peekAccent : Theme.serviceAccent,
-                includeBasics: includeBasics,
-                metrics: metrics,
-                highlight: state.highlight
-            )
-        } else {
-            Color.clear
+        Group {
+            if let sheet = state.sheets[modeID] {
+                let isMain = modeID == "main"
+                CheatSheetView(
+                    sheet: sheet,
+                    title: isMain ? holdTitle(sheet) : "\(modeID.capitalized) mode",
+                    subtitle: isMain ? "release to dismiss" : (sheet.returnHint ?? "modifier held"),
+                    includeBasics: includeBasics,
+                    metrics: metrics,
+                    highlight: state.highlight
+                )
+            } else {
+                Color.clear
+            }
         }
+        .environment(\.colorScheme, .dark)
     }
 
     private func holdTitle(_ sheet: ModeSheet) -> String {
-        guard !sheet.baseModifiers.isEmpty else { return "SHORTCUTS" }
-        return "HOLD " + sheet.baseModifiers.sorted { $0.sortOrder < $1.sortOrder }.map(\.symbol).joined()
-    }
-
-    private func exitSubtitle(_ sheet: ModeSheet) -> String {
-        guard let exit = sheet.primaryExit else { return "modifier held" }
-        let chord = exit.contains(sheet.baseModifiers) ? exit.stripped(of: sheet.baseModifiers) : exit
-        return "\(chord.display) exits to main"
+        guard !sheet.baseModifiers.isEmpty else { return "Shortcuts" }
+        return "Hold " + sheet.baseModifiers.sorted { $0.sortOrder < $1.sortOrder }.map(\.symbol).joined()
     }
 }

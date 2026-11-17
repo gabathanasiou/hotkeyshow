@@ -18,28 +18,32 @@ struct MenuBarContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            divider
+            Divider()
             bodyContent
-            divider
+            Divider()
             footer
         }
-        .frame(width: 660)
-        .background(Theme.card)
+        .frame(width: 740)
+        .background(VisualEffectBackground(material: .menu))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .environment(\.colorScheme, .dark)
     }
 
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Text("HotkeyShow")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.text)
+                .foregroundStyle(.primary)
 
-            chip("workspace \(state.workspace)")
+            Text("Workspace \(state.workspace)")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
             if state.isServiceMode {
-                chip("\(state.mode) mode", tint: Theme.serviceAccent)
+                Text("\(state.mode) mode")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.exitAccent)
             }
 
             Spacer(minLength: 12)
@@ -50,30 +54,12 @@ struct MenuBarContent: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11, weight: .semibold))
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(Theme.dim)
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
             .help("Reload shortcuts from AeroSpace")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-    }
-
-    private func chip(_ text: String, tint: Color = Theme.dim) -> some View {
-        Text(text)
-            .font(.system(size: 9.5, weight: .medium))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.white.opacity(0.07))
-            )
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.white.opacity(0.08))
-            .frame(height: 1)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Body
@@ -85,7 +71,7 @@ struct MenuBarContent: View {
                 ProgressView().controlSize(.small)
                 Text("Reading AeroSpace config…")
                     .font(.system(size: 11))
-                    .foregroundStyle(Theme.dim)
+                    .foregroundStyle(.secondary)
             }
             .padding(20)
         } else if let sheet = state.currentSheet {
@@ -117,48 +103,21 @@ struct MenuBarContent: View {
     private func cheatSheet(_ sheet: ModeSheet) -> some View {
         CheatSheetView(
             sheet: sheet,
-            title: "\(sheet.id.uppercased()) MODE",
-            subtitle: "\(sheet.allRows.count) bindings · live from AeroSpace",
-            accent: state.isServiceMode ? Theme.serviceAccent : Theme.peekAccent,
+            title: "\(sheet.id.capitalized) mode",
+            subtitle: sheet.returnHint ?? "\(sheet.allRows.count) bindings · live from AeroSpace",
             includeBasics: true,
             metrics: .menu,
             highlight: state.highlight,
             background: false
         )
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
     }
 
     private var searchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.faint)
-                .frame(width: 13)
-            TextField("Search shortcuts", text: $query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.text)
-            if !query.isEmpty {
-                Button {
-                    query = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 10))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.faint)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(Color.white.opacity(0.07))
-        )
-        .padding(.horizontal, 14)
-        .padding(.bottom, 8)
+        SearchField(text: $query, placeholder: "Search shortcuts")
+            .frame(height: 20)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
     }
 
     @ViewBuilder
@@ -167,42 +126,19 @@ struct MenuBarContent: View {
         if hits.isEmpty {
             Text("No shortcut matches “\(query)”")
                 .font(.system(size: 11))
-                .foregroundStyle(Theme.dim)
+                .foregroundStyle(.secondary)
                 .padding(20)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 1) {
                     ForEach(hits) { hit in
-                        HStack(spacing: 10) {
-                            HStack(spacing: 0) {
-                                KeyCapView(
-                                    text: hit.row.chord.display,
-                                    isExit: hit.row.summary.isExit,
-                                    fontSize: 11
-                                )
-                                Spacer(minLength: 0)
-                            }
-                            .frame(width: 76, alignment: .leading)
-
-                            Text(hit.row.summary.label)
-                                .font(.system(size: 12))
-                                .foregroundStyle(Theme.text)
-                                .lineLimit(1)
-
-                            Spacer(minLength: 8)
-
-                            if hit.mode != state.mode {
-                                Text(hit.mode)
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(Theme.faint)
-                            }
-                        }
+                        SearchResultRow(hit: hit, showsMode: hit.mode != state.mode)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
             }
-            .frame(height: min(CGFloat(hits.count) * 26 + 10, 420))
+            .frame(height: min(CGFloat(hits.count) * 25 + 12, 420))
         }
     }
 
@@ -213,11 +149,15 @@ struct MenuBarContent: View {
             HStack(spacing: 10) {
                 Toggle("Peek on hold ⌥", isOn: $state.peekEnabled)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .font(.system(size: 11))
-                    .foregroundStyle(Theme.dim)
+                    .foregroundStyle(.secondary)
 
                 Spacer(minLength: 8)
+
+                Text(state.autoReload ? "Auto-reload on" : "Auto-reload off")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
 
                 Menu {
                     Button("Refresh now") { state.refresh(reason: "manual") }
@@ -243,25 +183,56 @@ struct MenuBarContent: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-
-                Text(state.autoReload ? "auto-reload on" : "auto-reload off")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Theme.faint)
             }
 
             if let note = state.statusNote {
                 Text(note)
-                    .font(.system(size: 10))
-                    .foregroundStyle(state.statusIsWarning ? Theme.warning : Theme.dim)
+                    .font(.system(size: 11))
+                    .foregroundStyle(state.statusIsWarning ? Theme.warning : .secondary)
                     .lineLimit(2)
             } else if state.detectionStatus == .testing {
                 Text("Hold ⌥ now… testing detection")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Theme.peekAccent)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
+    }
+}
+
+private struct SearchResultRow: View {
+    let hit: AppState.SearchHit
+    let showsMode: Bool
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(hit.row.summary.label)
+                .font(.system(size: 12.5))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if showsMode {
+                Text(hit.mode)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Text(hit.row.chord.display)
+                .font(.system(size: 11.5, weight: .medium))
+                .foregroundStyle(hit.row.summary.isExit ? Theme.exitAccent : .secondary)
+                .fixedSize()
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(hovering ? Color.primary.opacity(0.07) : Color.clear)
+        )
+        .onHover { hovering = $0 }
     }
 }

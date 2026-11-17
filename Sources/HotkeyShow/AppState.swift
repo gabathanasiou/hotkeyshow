@@ -228,7 +228,7 @@ final class AppState: ObservableObject {
     // MARK: - Config file
 
     private func startConfigWatcher() {
-        Task {
+        Task { [weak self] in
             let path = await Task.detached { try? AeroSpaceClient.shared.configPath() }.value
             let url: URL
             if let path, !path.isEmpty {
@@ -238,7 +238,7 @@ final class AppState: ObservableObject {
                     .appendingPathComponent(".aerospace.toml")
             }
             let autoReloadValue = AeroSpaceConfigFile.autoReloadEnabled(at: url)
-            self.autoReload = autoReloadValue
+            self?.autoReload = autoReloadValue
             Log.write("config: \(url.path) auto-reload=\(autoReloadValue)")
 
             let watcher = ConfigFileWatcher(url: url)
@@ -247,12 +247,12 @@ final class AppState: ObservableObject {
                 self.autoReload = AeroSpaceConfigFile.autoReloadEnabled(at: url)
                 if !self.autoReload { self.configDirty = true }
                 // auto-reload-config reloads ~200 ms after a save; give it a beat.
-                Task { [weak self] in
+                Task {
                     try? await Task.sleep(nanoseconds: 600_000_000)
-                    self?.refresh(reason: "config file changed")
+                    self.refresh(reason: "config file changed")
                 }
             }
-            self.configWatcher = watcher
+            self?.configWatcher = watcher
         }
     }
 

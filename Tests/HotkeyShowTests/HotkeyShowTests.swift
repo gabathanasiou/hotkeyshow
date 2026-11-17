@@ -116,6 +116,28 @@ final class ModeSheetTests: XCTestCase {
         XCTAssertEqual(sheet.basicsLine, "Send to workspace: 1–9")
     }
 
+    func testReturnHintWhenEveryBindingExits() {
+        let sheet = SheetBuilder.build(mode: "service", bindings: [
+            "esc": "reload-config; mode main",
+            "r": "flatten-workspace-tree; mode main",
+            "alt-shift-h": "join-with left; mode main",
+        ])
+        XCTAssertEqual(sheet.returnHint, "Any key returns to main mode")
+    }
+
+    func testReturnHintNamesThePrimaryExit() {
+        let sheet = SheetBuilder.build(mode: "resize", bindings: [
+            "esc": "mode main",
+            "h": "resize smart -50",
+        ])
+        XCTAssertEqual(sheet.returnHint, "⎋ returns to main mode")
+    }
+
+    func testNoReturnHintForMainMode() {
+        let sheet = SheetBuilder.build(mode: "main", bindings: ["alt-h": "focus left"])
+        XCTAssertNil(sheet.returnHint)
+    }
+
     func testCompression() {
         XCTAssertEqual(ModeSheet.compressed(["H", "J", "K", "L"]), "H J K L")
         XCTAssertEqual(ModeSheet.compressed(["1", "2", "3"]), "1–3")

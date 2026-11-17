@@ -21,7 +21,9 @@ final class ModifierWatcher {
     func start() {
         guard timer == nil else { return }
         let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
-            self?.tick()
+            Task { @MainActor in
+                self?.tick()
+            }
         }
         // .common keeps the timer alive while menus or tracking loops run.
         RunLoop.main.add(timer, forMode: .common)
