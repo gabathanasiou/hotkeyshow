@@ -6,21 +6,11 @@ struct MenuBarContent: View {
     @State private var query = ""
     /// Browsing a mode's shortcuts from the menu without being in that mode.
     @State private var previewMode: String?
-    /// The menu window sizes to its content, and a ScrollView has no intrinsic
-    /// height, so the sheet would collapse to nothing. Measure it, then clamp.
-    @State private var sheetHeight: CGFloat = 320
 
     private var displayedModeID: String { previewMode ?? state.mode }
     private var isPreviewing: Bool { previewMode != nil && previewMode != state.mode }
     private var displayedSheet: ModeSheet? {
         state.sheets[displayedModeID] ?? state.sheets[state.mode]
-    }
-
-    private struct SheetHeightKey: PreferenceKey {
-        static var defaultValue: CGFloat = 0
-        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-            value = max(value, nextValue())
-        }
     }
 
     var body: some View {
@@ -60,10 +50,6 @@ struct MenuBarContent: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            Text("Workspace \(state.workspace)")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
             if isPreviewing, let previewMode {
                 Text("\(previewMode) mode preview")
                     .font(.system(size: 11, weight: .medium))
@@ -74,17 +60,7 @@ struct MenuBarContent: View {
                     .foregroundStyle(Theme.exitAccent)
             }
 
-            Spacer(minLength: 12)
-
-            Button {
-                state.refresh(reason: "manual")
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .help("Reload shortcuts from AeroSpace")
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -105,18 +81,7 @@ struct MenuBarContent: View {
         } else if let sheet = displayedSheet {
             searchField
             if query.isEmpty {
-                ScrollView {
-                    cheatSheet(sheet)
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear.preference(key: SheetHeightKey.self, value: proxy.size.height)
-                            }
-                        )
-                }
-                .frame(height: min(max(sheetHeight, 120), 620))
-                .onPreferenceChange(SheetHeightKey.self) { height in
-                    if abs(height - sheetHeight) > 0.5 { sheetHeight = height }
-                }
+                sheetBody(sheet)
             } else {
                 results
             }
@@ -125,6 +90,22 @@ struct MenuBarContent: View {
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.warning)
                 .padding(20)
+        }
+    }
+
+    /// Tall sheets scroll inside a fixed window; short ones let the window size
+    /// to the content. Deriving this from the sheet avoids a stale measured
+    /// height making a short mode open inside a tall panel.
+    @ViewBuilder
+    private func sheetBody(_ sheet: ModeSheet) -> some View {
+        let height = CheatSheetView.estimatedHeight(sheet: sheet, includeBasics: true, metrics: .menu)
+        if height <= 640 {
+            cheatSheet(sheet)
+        } else {
+            ScrollView {
+                cheatSheet(sheet)
+            }
+            .frame(height: 640)
         }
     }
 

@@ -190,10 +190,6 @@ final class AeroSpaceClient {
         try run(["list-modes", "--current"]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    func focusedWorkspace() throws -> String {
-        try run(["list-workspaces", "--focused"]).trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
     func configPath() throws -> String {
         try run(["config", "--config-path"]).trimmingCharacters(in: .whitespacesAndNewlines)
     }

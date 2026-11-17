@@ -24,7 +24,6 @@ final class AppState: ObservableObject {
     // MARK: - Published state
 
     @Published var mode: String = "main"
-    @Published var workspace: String = "—"
     @Published var sheets: [String: ModeSheet] = [:]
     @Published var loading = true
     @Published var errorMessage: String?
@@ -77,7 +76,6 @@ final class AppState: ObservableObject {
             self.connected = isConnected
             if isConnected {
                 self.refresh(reason: "connected")
-                self.refreshWorkspace()
             }
         }
         events.start()
@@ -87,7 +85,6 @@ final class AppState: ObservableObject {
         modifierWatcher.start()
 
         refresh(reason: "launch")
-        refreshWorkspace()
         startConfigWatcher()
     }
 
@@ -133,15 +130,6 @@ final class AppState: ObservableObject {
         }
     }
 
-    func refreshWorkspace() {
-        Task {
-            let workspace = await Task.detached { try? AeroSpaceClient.shared.focusedWorkspace() }.value
-            if let workspace, !workspace.isEmpty {
-                self.workspace = workspace
-            }
-        }
-    }
-
     // MARK: - AeroSpace events
 
     private func handle(_ event: EventStream.Event) {
@@ -157,11 +145,6 @@ final class AppState: ObservableObject {
                 hud.hide()
             } else {
                 showServicePanel()
-            }
-
-        case "focused-workspace-changed", "focus-changed":
-            if let workspace = event.workspace, !workspace.isEmpty, workspace != self.workspace {
-                self.workspace = workspace
             }
 
         case "binding-triggered":

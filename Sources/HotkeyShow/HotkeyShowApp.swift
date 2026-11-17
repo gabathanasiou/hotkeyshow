@@ -36,7 +36,7 @@ struct HotkeyShowApp: App {
         MenuBarExtra {
             MenuBarContent(state: state)
         } label: {
-            MenuBarLabel(state: state)
+            Image(systemName: "rectangle.split.2x1")
         }
         .menuBarExtraStyle(.window)
     }
@@ -45,18 +45,6 @@ struct HotkeyShowApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         AppState.shared.shutdown()
-    }
-}
-
-struct MenuBarLabel: View {
-    @ObservedObject var state: AppState
-
-    var body: some View {
-        HStack(spacing: 3) {
-            Image(systemName: state.isServiceMode ? "keyboard" : "rectangle.split.2x1")
-            Text(state.workspace)
-                .monospacedDigit()
-        }
     }
 }
 

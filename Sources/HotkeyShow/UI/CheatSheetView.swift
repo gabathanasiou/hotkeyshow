@@ -332,6 +332,41 @@ struct CheatSheetView: View {
     }
 }
 
+/// Estimates the rendered height of a sheet, used to decide whether the menu
+/// needs a scroll view. Precision is not critical: without a scroll view the
+/// window simply sizes to the real content.
+extension CheatSheetView {
+    static func estimatedHeight(
+        sheet: ModeSheet,
+        includeBasics: Bool,
+        metrics: SheetMetrics
+    ) -> CGFloat {
+        let columns = SheetLayout.columns(
+            sheet.visibleGroups(includingBasics: includeBasics),
+            count: metrics.maxColumns
+        )
+        let rowHeight = metrics.labelFont * 1.35 + 8
+        let groupTitleHeight = metrics.groupTitleFont * 1.35 + 5
+        let headerHeight = metrics.headerFont * 1.35 + max(11, metrics.headerFont - 2) * 1.35 + 17
+
+        var tallestColumn: CGFloat = 0
+        for column in columns {
+            var height: CGFloat = 0
+            for (index, group) in column.groups.enumerated() {
+                if index > 0 { height += 16 }
+                height += groupTitleHeight + CGFloat(group.rows.count) * rowHeight
+            }
+            tallestColumn = max(tallestColumn, height)
+        }
+
+        var total = headerHeight + tallestColumn + metrics.padding * 2
+        if !includeBasics, sheet.basicsLine != nil {
+            total += metrics.groupTitleFont * 2.7
+        }
+        return total
+    }
+}
+
 /// Wraps the sheet with the live app state so highlights and config refreshes
 /// update without rebuilding the window. The overlay is always dark, so the
 /// color scheme is forced here rather than in the sheet itself.
