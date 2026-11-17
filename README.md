@@ -18,7 +18,7 @@ Click the menu bar item for the full, searchable sheet:
 
 - **Peek on hold ⌥** — after 0.3 s of hesitation a card appears with the non-obvious bindings. Focus/move `hjkl`, `1–9` workspaces and `⇧1–9` sends are collapsed into one dim line, because you already know those. Press any binding or release ⌥ and it disappears.
 - **Mode panel** — entering `service` (or any other mode) immediately shows that mode's bindings. The exit key is highlighted, and a plain-language line says how to get back: *Any key returns to main mode* when every binding in the mode ends in `mode main`, or the specific exit key otherwise. It stays up until you leave the mode, so it doubles as "you are in a mode" feedback.
-- **Menu bar sheet** — the current workspace number, plus a searchable list of the bindings for **the mode you are in**: open it during service mode and it lists join/float/reset/close rather than the main grid.
+- **Menu bar sheet** — the current workspace number, plus a searchable list of the bindings for **the mode you are in**: open it during service mode and it lists join/float/reset/close rather than the main grid. Mode rows have a chevron — click *Service mode* to read its shortcuts without entering it, and the back button returns to the live mode.
 
 Everything is read live from the running AeroSpace: `list-modes --json` discovers modes, and `config --get mode.<id>.binding --json` dumps a mode's bindings in one call. There is no second copy of your shortcuts to drift, and no hardcoded `service` — add a `resize` mode and it appears on the next refresh.
 

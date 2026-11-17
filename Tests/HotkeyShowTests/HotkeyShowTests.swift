@@ -74,6 +74,12 @@ final class CommandFormatterTests: XCTestCase {
         XCTAssertEqual(CommandFormatter.summarize("workspace-back-and-forth").category, .navigation)
     }
 
+    func testModeTargetOnlyForPureModeSwitch() {
+        XCTAssertEqual(CommandFormatter.summarize("mode service").modeTarget, "service")
+        XCTAssertNil(CommandFormatter.summarize("reload-config; mode main").modeTarget)
+        XCTAssertNil(CommandFormatter.summarize("focus left").modeTarget)
+    }
+
     func testUnknownCommandFallsBackToRawWords() {
         let summary = CommandFormatter.summarize("do-something cool")
         XCTAssertEqual(summary.label, "Do something cool")

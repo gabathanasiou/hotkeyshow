@@ -142,7 +142,8 @@ private struct SnapshotCard: View {
                 subtitle: "\(sheet.allRows.count) bindings · live from AeroSpace",
                 includeBasics: true,
                 metrics: .menu,
-                background: false
+                background: false,
+                onNavigate: { _ in }
             )
             .padding(20)
             .background(Color(white: 0.97))

@@ -54,6 +54,9 @@ struct CommandSummary: Hashable {
     /// True when the binding returns to the main mode, i.e. it is the way out.
     var isExit: Bool
     var raw: String
+    /// Set only when the binding is nothing but `mode <id>` — a pure mode
+    /// switch the menu can offer as navigation.
+    var modeTarget: String?
 }
 
 /// Turns AeroSpace command strings into something readable.
@@ -63,7 +66,7 @@ enum CommandFormatter {
     static func summarize(_ raw: String, mainMode: String = "main") -> CommandSummary {
         let commands = splitCommands(raw)
         guard let first = commands.first else {
-            return CommandSummary(label: raw.isEmpty ? "—" : raw, category: .other, isExit: false, raw: raw)
+            return CommandSummary(label: raw.isEmpty ? "—" : raw, category: .other, isExit: false, raw: raw, modeTarget: nil)
         }
 
         let described = describe(first)
@@ -71,6 +74,12 @@ enum CommandFormatter {
             let tokens = command.split(separator: " ").map(String.init)
             return tokens.count >= 2 && tokens[0] == "mode" && tokens[1] == mainMode
         }
+        let modeTarget: String? = {
+            guard commands.count == 1 else { return nil }
+            let tokens = commands[0].split(separator: " ").map(String.init)
+            guard tokens.count == 2, tokens[0] == "mode" else { return nil }
+            return tokens[1]
+        }()
 
         var label = described.label
         if commands.count > 1 && !isExit {
@@ -80,7 +89,8 @@ enum CommandFormatter {
             label: label,
             category: described.category,
             isExit: isExit || described.isExit,
-            raw: raw
+            raw: raw,
+            modeTarget: modeTarget
         )
     }
 

@@ -4,9 +4,17 @@ import SwiftUI
 struct MenuBarContent: View {
     @ObservedObject var state: AppState
     @State private var query = ""
+    /// Browsing a mode's shortcuts from the menu without being in that mode.
+    @State private var previewMode: String?
     /// The menu window sizes to its content, and a ScrollView has no intrinsic
     /// height, so the sheet would collapse to nothing. Measure it, then clamp.
     @State private var sheetHeight: CGFloat = 320
+
+    private var displayedModeID: String { previewMode ?? state.mode }
+    private var isPreviewing: Bool { previewMode != nil && previewMode != state.mode }
+    private var displayedSheet: ModeSheet? {
+        state.sheets[displayedModeID] ?? state.sheets[state.mode]
+    }
 
     private struct SheetHeightKey: PreferenceKey {
         static var defaultValue: CGFloat = 0
@@ -26,12 +34,28 @@ struct MenuBarContent: View {
         .frame(width: 740)
         .background(VisualEffectBackground(material: .menu))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .onChange(of: state.mode) { _ in
+            // AeroSpace changed mode for real; stop previewing the old one.
+            previewMode = nil
+        }
     }
 
     // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 8) {
+            if isPreviewing {
+                Button {
+                    previewMode = nil
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Back to \(state.mode) mode")
+            }
+
             Text("HotkeyShow")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
@@ -40,7 +64,11 @@ struct MenuBarContent: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
-            if state.isServiceMode {
+            if isPreviewing, let previewMode {
+                Text("\(previewMode) mode preview")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.exitAccent)
+            } else if state.isServiceMode {
                 Text("\(state.mode) mode")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Theme.exitAccent)
@@ -66,7 +94,7 @@ struct MenuBarContent: View {
 
     @ViewBuilder
     private var bodyContent: some View {
-        if state.loading && state.currentSheet == nil {
+        if state.loading && state.sheets[displayedModeID] == nil {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text("Reading AeroSpace config…")
@@ -74,7 +102,7 @@ struct MenuBarContent: View {
                     .foregroundStyle(.secondary)
             }
             .padding(20)
-        } else if let sheet = state.currentSheet {
+        } else if let sheet = displayedSheet {
             searchField
             if query.isEmpty {
                 ScrollView {
@@ -108,16 +136,19 @@ struct MenuBarContent: View {
             includeBasics: true,
             metrics: .menu,
             highlight: state.highlight,
-            background: false
+            background: false,
+            onNavigate: { target in
+                previewMode = (target == state.mode) ? nil : target
+            }
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var searchField: some View {
         SearchField(text: $query, placeholder: "Search shortcuts")
-            .frame(height: 20)
             .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
     }
 
     @ViewBuilder

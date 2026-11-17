@@ -157,10 +157,35 @@ struct SheetRowView: View {
     let isExit: Bool
     let isHighlighted: Bool
     let metrics: SheetMetrics
+    var onNavigate: ((String) -> Void)? = nil
 
     @State private var hovering = false
 
+    private var navigationTarget: String? {
+        guard onNavigate != nil else { return nil }
+        return row.summary.modeTarget
+    }
+
     var body: some View {
+        Group {
+            if let target = navigationTarget, let onNavigate {
+                Button {
+                    onNavigate(target)
+                } label: {
+                    content
+                }
+                .buttonStyle(.plain)
+                .help("Show \(target) mode shortcuts")
+            } else {
+                content
+                    .help(row.summary.raw)
+            }
+        }
+        .onHover { hovering = $0 }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch metrics.keycapStyle {
         case .chip:
             HStack(spacing: 8) {
@@ -181,10 +206,9 @@ struct SheetRowView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-            .help(row.summary.raw)
 
         case .trailingText:
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Text(row.summary.label)
                     .font(.system(size: metrics.labelFont))
                     .foregroundStyle(.primary)
@@ -198,6 +222,12 @@ struct SheetRowView: View {
                     .foregroundStyle(isExit ? Theme.exitAccent : .secondary)
                     .lineLimit(1)
                     .fixedSize()
+
+                if navigationTarget != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
@@ -205,8 +235,6 @@ struct SheetRowView: View {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(hovering ? Color.primary.opacity(0.07) : Color.clear)
             )
-            .onHover { hovering = $0 }
-            .help(row.summary.raw)
         }
     }
 }
@@ -221,6 +249,7 @@ struct CheatSheetView: View {
     let metrics: SheetMetrics
     var highlight: String? = nil
     var background: Bool = true
+    var onNavigate: ((String) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -294,7 +323,8 @@ struct CheatSheetView: View {
                         : row.chord,
                     isExit: row.chord == sheet.primaryExit,
                     isHighlighted: highlight == row.id,
-                    metrics: metrics
+                    metrics: metrics,
+                    onNavigate: onNavigate
                 )
             }
         }
